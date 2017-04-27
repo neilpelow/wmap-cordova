@@ -1,6 +1,7 @@
-var HOST = "http://localhost:8000";
+var HOST = "http://178.62.74.54:8000";
 
 var URLS = {
+    get_station_data: "/rest/get_station_data/",
     login: "/rest/tokenlogin/",
     userme: "/rest/userme/",
     updateposition: "/rest/updateposition/"
@@ -16,6 +17,14 @@ var curIcon = L.ExtraMarkers.icon({
     prefix: 'fa'
 });
 
+var bikeIcon = L.ExtraMarkers.icon({
+    icon: 'fa-crosshairs',
+    iconColor: 'white',
+    markerColor: 'red',
+    shape: 'square',
+    prefix: 'fa'
+});
+
 function onLoad() {
     console.log("In onLoad.");
     document.addEventListener('deviceready', onDeviceReady, false);
@@ -26,6 +35,7 @@ function onDeviceReady() {
 
     $("#btn-login").on("touchstart", loginPressed);
     $("#sp-logout").on("touchstart", logoutPressed);
+    $("#show-bikes").on("touchstart", displayBikes);
 
     if (localStorage.lastUserName && localStorage.lastUserPwd) {
         $("#in-username").val(localStorage.lastUserName);
@@ -125,6 +135,8 @@ function getCurrentlocation() {
 
             setMapToCurrentLocation();
             updatePosition();
+            getStationLocations();
+
         },
         function (err) {
         },
@@ -134,6 +146,39 @@ function getCurrentlocation() {
             timeout: 5000
         }
     );
+}
+
+function getStationLocations() {
+    $.ajax({
+        type: "GET",
+        headers: {"Authorization": localStorage.authtoken},
+        url: HOST + URLS["get_station_data"]
+    }).done(function (data, status, xhr) {
+        console.log(data);
+        var myData = JSON.parse(data.data);
+        for (item in myData){
+            console.log(myData[item]);
+            var station = myData[item];
+            console.log(station);
+            var name = station.name;
+            var pos = station.position;
+
+            var bikeStands = station.bike_stands;
+            var availableStands = station.available_bike_stands;
+            var availableBikes = station.available_bikes;
+
+            var myLat = pos.lat;
+            var myLng = pos.lng;
+            var latLng = L.latLng(myLat, myLng);
+            var popupContent = "<b>" + name + "</b><br>"
+            + "Bike Stands: <b>" + bikeStands + "</b><br>"
+            + "Free Stands: <b>" + availableStands + "</b><br>"
+            + "Bikes: <b>" + availableBikes + "</b><br>"
+            L.marker(latLng, {icon: bikeIcon}).addTo(map).bindPopup(popupContent);
+        } 
+    }).fail(function (xhr, status, error) {
+        $(".sp-username").html("");
+    });
 }
 
 function setMapToCurrentLocation() {
@@ -205,6 +250,19 @@ function setUserName() {
         url: HOST + URLS["userme"]
     }).done(function (data, status, xhr) {
         $(".sp-username").html(xhr.responseJSON.properties.username);
+    }).fail(function (xhr, status, error) {
+        $(".sp-username").html("");
+    });
+}
+
+
+function displayBikes() {
+    $.ajax({
+        type: "GET",
+        headers: {"Authorization": localStorage.authtoken},
+        url: HOST + URLS["get_station_data"]
+    }).done(function (data, status, xhr) {
+        console.log(data);
     }).fail(function (xhr, status, error) {
         $(".sp-username").html("");
     });
