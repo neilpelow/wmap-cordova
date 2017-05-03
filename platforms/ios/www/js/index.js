@@ -1,6 +1,8 @@
-var HOST = "http://localhost:8000";
+var HOST = "http://178.62.74.54:8000";
 
 var URLS = {
+    get_road_data: "/rest/get_road_data/",
+    get_station_data: "/rest/get_station_data/",
     login: "/rest/tokenlogin/",
     userme: "/rest/userme/",
     updateposition: "/rest/updateposition/"
@@ -8,10 +10,28 @@ var URLS = {
 
 var map;
 
+var showIncidents = false;
+
 var curIcon = L.ExtraMarkers.icon({
-    icon: 'fa-crosshairs',
+    icon: 'fa-user',
     iconColor: 'white',
     markerColor: 'blue',
+    shape: 'square',
+    prefix: 'fa'
+});
+
+var bikeIcon = L.ExtraMarkers.icon({
+    icon: 'fa-bicycle',
+    iconColor: 'black',
+    markerColor: 'red',
+    shape: 'square',
+    prefix: 'fa'
+});
+
+var roadIcon = L.ExtraMarkers.icon({
+    icon: 'fa-exclamation-triangle',
+    iconColor: 'black',
+    markerColor: 'yellow',
     shape: 'square',
     prefix: 'fa'
 });
@@ -26,6 +46,8 @@ function onDeviceReady() {
 
     $("#btn-login").on("touchstart", loginPressed);
     $("#sp-logout").on("touchstart", logoutPressed);
+    $("#btn-clear").on("touchstart", refreshMap);
+    $("#btn-show").on("touchstart", showIncidentsButton);
 
     if (localStorage.lastUserName && localStorage.lastUserPwd) {
         $("#in-username").val(localStorage.lastUserName);
@@ -40,9 +62,6 @@ function onDeviceReady() {
         });
 
         $("#map-page").enhanceWithin();
-
-        makeBasicMap();
-        getCurrentlocation();
     });
 
     $(document).on("pageshow", function (event) {
@@ -52,6 +71,10 @@ function onDeviceReady() {
         }
         setUserName();
     });
+
+    makeBasicMap();
+    getCurrentlocation();
+    setMapToCurrentLocation();
 
     $(document).on("pageshow", "#map-page", function () {
         console.log("In pageshow / #map-page.");
@@ -83,6 +106,7 @@ function loginPressed() {
         localStorage.lastUserPwd = $("#in-password").val();
 
         $.mobile.navigate("#map-page");
+        getCurrentlocation();
     }).fail(function (xhr, status, error) {
         var message = "Login Failed\n";
         if ((!xhr.status) && (!navigator.onLine)) {
@@ -124,7 +148,8 @@ function getCurrentlocation() {
             localStorage.lastKnownCurrentPosition = JSON.stringify(myPos);
 
             setMapToCurrentLocation();
-            updatePosition();
+            getStationLocations();
+            getRoadLocations();
         },
         function (err) {
         },
@@ -134,6 +159,78 @@ function getCurrentlocation() {
             timeout: 5000
         }
     );
+}
+
+function getStationLocations() {
+    $.ajax({
+        type: "GET",
+        headers: {"Authorization": localStorage.authtoken},
+        url: HOST + URLS["get_station_data"]
+    }).done(function (data, status, xhr) {
+        console.log(data);
+        var myData = JSON.parse(data.data);
+        for (item in myData) {
+            var station = myData[item];
+            var name = station.name;
+            var pos = station.position;
+
+            var bikeStands = station.bike_stands;
+            var availableStands = station.available_bike_stands;
+            var availableBikes = station.available_bikes;
+
+            var myLat = pos.lat;
+            var myLng = pos.lng;
+            var latLng = L.latLng(myLat, myLng);
+            
+            var popupContent = "<b>" + name + "</b><br>"
+            + "Bike Stands: <b>" + bikeStands + "</b><br>"
+            + "Free Stands: <b>" + availableStands + "</b><br>"
+            + "Bikes: <b>" + availableBikes + "</b><br>"
+            L.marker(latLng, {icon: bikeIcon}).addTo(map).bindPopup(popupContent);
+        } // end for
+    }).fail(function (xhr, status, error) {
+        $(".sp-username").html("");
+    });
+}
+
+function getRoadLocations() {
+    $.ajax({
+        type: "GET",
+        headers: {"Authorization": localStorage.authtoken},
+        url: HOST + URLS["get_road_data"]
+    }).done(function (data, status, xhr) {
+        console.log("In road data");
+        var myData = data.data
+        var myData = JSON.parse(myData);
+        var myPayload = myData.payload;
+        var myIncidents = myPayload.incidents;
+        console.log(myIncidents);
+
+        for(item in myIncidents) {
+            var myIncident = myIncidents[item]
+            var incident = myIncident.incident;
+
+            var date = incident.incidentdate;
+            var desc = incident.incidentdescription;
+            var title = incident.incidenttitle;
+
+            var lat = incident.locationlatitude;
+            var lng = incident.locationlongitude;
+            var latLng = L.latLng(lat, lng);
+
+            if(showIncidents === true) {
+                if(lng > -6.318005 && lat < 53.363402 && lat > 53.328232){
+                    var popupContent = "<b>" + title + "</b><br>"
+                    + "Date: <b>" + date + "</b><br>"
+                    + "Desc: <b>" + desc + "</b><br>"
+                    L.marker(latLng, {icon: roadIcon}).addTo(map).bindPopup(popupContent);
+                }
+            }
+        }
+
+    }).fail(function (xhr, status, error) {
+        $(".sp-username").html("");
+    });
 }
 
 function setMapToCurrentLocation() {
@@ -208,4 +305,60 @@ function setUserName() {
     }).fail(function (xhr, status, error) {
         $(".sp-username").html("");
     });
+}
+
+// Removes map and creates new one. 
+function refreshMap() {
+    console.log("Map refresh.");
+    map.remove();
+    map = L.map("map-var", {
+        zoomControl: false,
+        attributionControl: false
+    }).fitWorld();
+    L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        useCache: true
+    }).addTo(map);
+
+    if(localStorage.lastKnownCurrentPosition){
+        var myPos = JSON.parse(localStorage.lastKnownCurrentPosition);
+        var myLatLon = L.latLng(myPos.coords.latitude, myPos.coords.longitude);
+        L.Routing.control({
+            waypoints: [
+                L.latLng(myPos.coords.latitude, myPos.coords.longitude),
+                L.latLng(53.338912, -6.2748327)
+            ],
+            routeWhileDragging: true
+        }).addTo(map);
+    }
+
+    $("#leaflet-copyright").html("Leaflet | Map Tiles &copy; <a href='http://openstreetmap.org'>OpenStreetMap</a> contributors");
+    getCurrentlocation();
+    setMapToCurrentLocation();
+    updatePosition();
+}
+
+//Boolean toggle for showing road incidents
+function showIncidentsButton() {
+    if(showIncidents === false) {
+        showIncidents = true;
+        refreshMap();
+    } else {
+        showIncidents = false;
+        refreshMap();
+    }
+}
+
+//This doesnt work for absolutely no reason.
+function addWaypoints() {
+    if(localStorage.lastKnownCurrentPosition){
+        var myPos = JSON.parse(localStorage.lastKnownCurrentPosition);
+        var myLatLon = L.latLng(myPos.coords.latitude, myPos.coords.longitude);
+        L.Routing.control({
+            waypoints: [
+                L.latLng(myPos.coords.latitude, myPos.coords.longitude),
+                L.latLng(53.338912, -6.2748327)
+            ],
+            routeWhileDragging: true
+        }).addTo(map);
+    }
 }

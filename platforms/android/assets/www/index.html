@@ -24,7 +24,12 @@
     <link rel="stylesheet" type="text/css" href="external/Leaflet.ExtraMarkers/dist/css/leaflet.extra-markers.min.css">
     <link rel="stylesheet" type="text/css" href="css/index.css">
     <link rel="stylesheet" type="text/css" href="css/style1.css">
+    <link rel="stylesheet" type="text/css" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css">
+    <link rel="stylesheet" type="text/css" href="dist/leaflet-routing-machine.css">
 
+    <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+    <script src="dist/leaflet-routing-machine.js"></script>
+    <script src="dist/leaflet-routing-machine.min.js"></script>
     <script src="external/jquery/jquery-1.12.4.js"></script>
     <script src="external/jquery.mobile-1.4.5/jquery.mobile-1.4.5.min.js"></script>
     <script src="external/leaflet/leaflet.js"></script>
@@ -69,6 +74,9 @@
                     <a id="goto-currentlocation" class="ui-btn-mini ui-btn-inline">
                         <span class="fa fa-crosshairs fa-3x" style="color:deepskyblue"></span>
                     </a>
+                    <button id="btn-clear" type="button" style="background-color: black; color: white;"> Refresh </button>
+                    <br>
+                    <button id="btn-show" type="button" style="background-color: black; color: white;"> Toggle Incidents </button>
                 </td>
                 <td></td>
                 <td></td>
@@ -95,6 +103,40 @@
             <button id="btn-login" type="button" class="ui-btn ui-corner-all live-button"
                     style="background-color: #669966; color: white;">
                 <span class="fa fa-sign-in fa-lg"></span> Login
+            </button>
+            <button id="btn-signup" type="button" class="ui-btn ui-corner-all live-button"
+                    style="background-color: #6d2d32; color: white;">
+                <span class="fa fa-sign-in fa-lg"></span> Sign Up
+            </button>
+        </form>
+    </div>
+</div>
+
+<div data-role="page" data-dialog="true" data-close-btn="none" style="background-color: white" id="signup-page">
+    <div data-role="header" style="text-align: center; background-color: silver">
+        <span style="font-size: x-large">Register User</span>
+    </div>
+
+    <div data-role="main" class="ui-content"
+         style="align-content: center; background-color: white">
+        <form role="form">
+            <div class="ui-field-contain">
+                <label id="label-in-username" for="in-username1"><span class="fa fa-user fa-fw"></span></label>
+                <input type="text" class="form-control" id="in-username1" placeholder="Username">
+                <label id="label-in-password" for="in-password1"><span class="fa fa-lock fa-fw"></span></label>
+                <input type="password" class="form-control" id="in-password1" placeholder="Password">
+                <label id="label-in-cpassword" for="in-password2"><span class="fa fa-lock fa-fw"></span>Confirm Password</label>
+                <input type="password" class="form-control" id="in-password2" placeholder="Confirm Password">
+                <label id="label-in-email" for="in-email">Email</label>
+                <input type="text" class="form-control" id="in-email" placeholder="ex. john@john.com">
+                <label id="label-in-fname" for="in-fname">First Name</label>
+                <input type="text" class="form-control" id="in-fname">
+                <label id="label-in-lname" for="in-lname">Last Name</label>
+                <input type="text" class="form-control" id="in-lname">
+            </div>
+            <button id="btn-signupsend" type="button" class="ui-btn ui-corner-all live-button"
+                    style="background-color: #6d2d32; color: white;">
+                <span class="fa fa-sign-in fa-lg"></span> Register
             </button>
         </form>
     </div>
